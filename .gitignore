@@ -1,0 +1,20 @@
+# Confidential data
+EDI_OBSERVATIONS.xlsx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.log
+.DS_Store 
