@@ -383,14 +383,8 @@ def main():
                 st.session_state.current_page = "General Queries"
                 st.rerun()
 
-        # Hero Image at the bottom
-        st.markdown("<br><br>", unsafe_allow_html=True)  # Add some spacing
-        try:
-            st.image("assets/laser_microdrilling.svg", 
-                    caption="Laser Microdrilling Process Illustration",
-                    use_container_width=True)
-        except Exception as e:
-            st.error(f"Error loading image: {str(e)}")
+        # Add some spacing at the bottom
+        st.markdown("<br><br>", unsafe_allow_html=True)
     
     elif selected_page == "Beginner's Guide":
         show_beginner_guide()
