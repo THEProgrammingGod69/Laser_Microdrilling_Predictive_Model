@@ -335,11 +335,11 @@ def main():
                 <h3>Key Features</h3>
                 <div class="feature-item">
                     <span class="feature-icon">🎯</span>
-                    <span>Predict and optimize laser microdrilling parameters</span>
+                    <span>Predict hole diameter and pitch based on laser parameters</span>
                 </div>
                 <div class="feature-item">
                     <span class="feature-icon">📊</span>
-                    <span>Make accurate hole diameter predictions</span>
+                    <span>Optimize speed, frequency, and power settings</span>
                 </div>
                 <div class="feature-item">
                     <span class="feature-icon">📈</span>
@@ -359,7 +359,7 @@ def main():
             </div>
             """, unsafe_allow_html=True)
         
-        if st.session_state.model and st.session_state.model.rf_model is not None:
+        if st.session_state.model and st.session_state.model.rf_model_diameter is not None:
             st.markdown("""
                 <div class="success-box">
                     ✅ Models are loaded and ready!
@@ -411,14 +411,20 @@ def main():
                 with col2:
                     freq_col = st.selectbox("Select Frequency column", cols)
                 with col3:
+                    power_col = st.selectbox("Select Power column", cols)
+                
+                col1, col2 = st.columns(2)
+                with col1:
                     diam_col = st.selectbox("Select Diameter column", cols)
+                with col2:
+                    pitch_col = st.selectbox("Select Pitch column", cols)
                 
                 if st.button("Train Models"):
                     with st.spinner("Training models..."):
                         try:
                             if st.session_state.model is None:
                                 st.session_state.model = LaserMicrodrillingModel()
-                            st.session_state.model.load_data(uploaded_file, speed_col, freq_col, diam_col)
+                            st.session_state.model.load_data(uploaded_file, speed_col, freq_col, power_col, diam_col, pitch_col)
                             st.session_state.model.train_models()
                             st.session_state.model.evaluate_models()
                             st.session_state.model.save_models()
@@ -426,16 +432,32 @@ def main():
                             
                             # Show performance metrics
                             st.subheader("Model Performance")
+                            
+                            # Diameter Models Performance
+                            st.write("Diameter Prediction Models")
                             col1, col2 = st.columns(2)
                             with col1:
                                 st.write("Random Forest Metrics")
-                                rf_pred = st.session_state.model.rf_model.predict(st.session_state.model.X_test_scaled)
-                                st.metric("R² Score", f"{st.session_state.model.r2_score(st.session_state.model.y_test, rf_pred):.4f}")
+                                rf_pred_diameter = st.session_state.model.rf_model_diameter.predict(st.session_state.model.X_test_scaled)
+                                st.metric("R² Score", f"{st.session_state.model.r2_score(st.session_state.model.y_test_diameter, rf_pred_diameter):.4f}")
                             with col2:
                                 st.write("Neural Network Metrics")
                                 with torch.no_grad():
-                                    nn_pred = st.session_state.model.nn_model(torch.FloatTensor(st.session_state.model.X_test_scaled.values)).numpy()
-                                st.metric("R² Score", f"{st.session_state.model.r2_score(st.session_state.model.y_test, nn_pred):.4f}")
+                                    nn_pred_diameter = st.session_state.model.nn_model_diameter(torch.FloatTensor(st.session_state.model.X_test_scaled.values)).numpy()
+                                st.metric("R² Score", f"{st.session_state.model.r2_score(st.session_state.model.y_test_diameter, nn_pred_diameter):.4f}")
+                            
+                            # Pitch Models Performance
+                            st.write("Pitch Prediction Models")
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.write("Random Forest Metrics")
+                                rf_pred_pitch = st.session_state.model.rf_model_pitch.predict(st.session_state.model.X_test_scaled)
+                                st.metric("R² Score", f"{st.session_state.model.r2_score(st.session_state.model.y_test_pitch, rf_pred_pitch):.4f}")
+                            with col2:
+                                st.write("Neural Network Metrics")
+                                with torch.no_grad():
+                                    nn_pred_pitch = st.session_state.model.nn_model_pitch(torch.FloatTensor(st.session_state.model.X_test_scaled.values)).numpy()
+                                st.metric("R² Score", f"{st.session_state.model.r2_score(st.session_state.model.y_test_pitch, nn_pred_pitch):.4f}")
                         except Exception as e:
                             st.error(f"Error during training: {str(e)}")
             except Exception as e:
@@ -444,29 +466,44 @@ def main():
     elif selected_page == "Make Predictions":
         st.header("Make Predictions")
         
-        if st.session_state.model is None or st.session_state.model.rf_model is None:
+        if st.session_state.model is None or st.session_state.model.rf_model_diameter is None:
             st.warning("Please train or load models first!")
         else:
             try:
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     speed = st.number_input("Enter Speed", min_value=0.0)
                 with col2:
                     freq = st.number_input("Enter Frequency", min_value=0.0)
+                with col3:
+                    power = st.number_input("Enter Power", min_value=0.0)
                 
                 if st.button("Predict"):
                     try:
-                        rf_pred = st.session_state.model.predict_diameter(speed, freq, 'rf')
-                        nn_pred = st.session_state.model.predict_diameter(speed, freq, 'nn')
-                        avg_pred = (rf_pred + nn_pred) / 2
+                        rf_diameter, rf_pitch = st.session_state.model.predict(speed, freq, power, 'rf')
+                        nn_diameter, nn_pitch = st.session_state.model.predict(speed, freq, power, 'nn')
+                        avg_diameter = (rf_diameter + nn_diameter) / 2
+                        avg_pitch = (rf_pitch + nn_pitch) / 2
                         
+                        # Display Diameter Predictions
+                        st.subheader("Diameter Predictions")
                         col1, col2, col3 = st.columns(3)
                         with col1:
-                            st.metric("Random Forest Prediction", f"{rf_pred:.4f}")
+                            st.metric("Random Forest", f"{rf_diameter:.4f}")
                         with col2:
-                            st.metric("Neural Network Prediction", f"{nn_pred:.4f}")
+                            st.metric("Neural Network", f"{nn_diameter:.4f}")
                         with col3:
-                            st.metric("Average Prediction", f"{avg_pred:.4f}")
+                            st.metric("Average", f"{avg_diameter:.4f}")
+                        
+                        # Display Pitch Predictions
+                        st.subheader("Pitch Predictions")
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Random Forest", f"{rf_pitch:.4f}")
+                        with col2:
+                            st.metric("Neural Network", f"{nn_pitch:.4f}")
+                        with col3:
+                            st.metric("Average", f"{avg_pitch:.4f}")
                     except Exception as e:
                         st.error(f"Error making prediction: {str(e)}")
             except Exception as e:
@@ -475,7 +512,7 @@ def main():
     elif selected_page == "Batch Analysis":
         st.header("Batch Analysis")
         
-        if st.session_state.model is None or st.session_state.model.rf_model is None:
+        if st.session_state.model is None or st.session_state.model.rf_model_diameter is None:
             st.warning("Please train or load models first!")
         else:
             try:
@@ -487,26 +524,38 @@ def main():
                     freq_min = st.number_input("Minimum Frequency", min_value=0.0)
                     freq_max = st.number_input("Maximum Frequency", min_value=freq_min)
                 
-                steps = st.slider("Number of points per parameter", min_value=2, max_value=10, value=5)
+                col1, col2 = st.columns(2)
+                with col1:
+                    power_min = st.number_input("Minimum Power", min_value=0.0)
+                    power_max = st.number_input("Maximum Power", min_value=power_min)
+                with col2:
+                    steps = st.number_input("Number of steps", min_value=2, value=5)
                 
                 if st.button("Generate Predictions"):
                     try:
                         speeds = np.linspace(speed_min, speed_max, steps)
                         freqs = np.linspace(freq_min, freq_max, steps)
+                        powers = np.linspace(power_min, power_max, steps)
                         
                         results = []
                         for speed in speeds:
                             for freq in freqs:
-                                rf_pred = st.session_state.model.predict_diameter(speed, freq, 'rf')
-                                nn_pred = st.session_state.model.predict_diameter(speed, freq, 'nn')
-                                avg_pred = (rf_pred + nn_pred) / 2
-                                results.append({
-                                    'Speed': speed,
-                                    'Frequency': freq,
-                                    'RF Prediction': rf_pred,
-                                    'NN Prediction': nn_pred,
-                                    'Average': avg_pred
-                                })
+                                for power in powers:
+                                    rf_diameter, rf_pitch = st.session_state.model.predict(speed, freq, power, 'rf')
+                                    nn_diameter, nn_pitch = st.session_state.model.predict(speed, freq, power, 'nn')
+                                    avg_diameter = (rf_diameter + nn_diameter) / 2
+                                    avg_pitch = (rf_pitch + nn_pitch) / 2
+                                    results.append({
+                                        'Speed': speed,
+                                        'Frequency': freq,
+                                        'Power': power,
+                                        'RF Diameter': rf_diameter,
+                                        'NN Diameter': nn_diameter,
+                                        'Average Diameter': avg_diameter,
+                                        'RF Pitch': rf_pitch,
+                                        'NN Pitch': nn_pitch,
+                                        'Average Pitch': avg_pitch
+                                    })
                         
                         results_df = pd.DataFrame(results)
                         st.write("Prediction Results:")
@@ -529,7 +578,7 @@ def main():
     elif selected_page == "Visualization":
         st.header("Prediction Visualization")
         
-        if st.session_state.model is None or st.session_state.model.rf_model is None:
+        if st.session_state.model is None or st.session_state.model.rf_model_diameter is None:
             st.warning("Please train or load models first!")
         else:
             try:
@@ -576,6 +625,8 @@ def main():
 
         ### 🎯 Our Goal
         Our primary objective is to optimize laser microdrilling processes by:
+        - Predicting both hole diameter and pitch accurately
+        - Optimizing speed, frequency, and power parameters
         - Reducing the time and resources spent on parameter optimization
         - Improving hole quality and consistency
         - Minimizing the need for trial-and-error experiments
@@ -584,41 +635,46 @@ def main():
         ### 🤖 Machine Learning Models
         We utilize two sophisticated models for predictions:
 
-        #### 1. Random Forest Model
+        #### 1. Random Forest Models
+        - Separate models for diameter and pitch prediction
         - Excellent at handling non-linear relationships
         - Robust against outliers
         - Provides feature importance insights
         - Ideal for understanding parameter interactions
 
-        #### 2. Neural Network Model
+        #### 2. Neural Network Models
+        - Dedicated networks for diameter and pitch prediction
         - Captures complex patterns in the data
         - Learns hierarchical feature representations
         - Adapts to new patterns through training
         - Optimized for high-dimensional parameter spaces
 
-        ### 📊 The Process
-        1. **Data Collection**
-           - Gathering experimental data from laser microdrilling operations
-           - Recording key parameters: speed, frequency, and resulting hole diameter
-           - Validating data quality and consistency
+        ### 📊 Input Parameters
+        1. **Speed**
+           - Controls the movement rate
+           - Affects processing time and quality
+           - Key factor in hole formation
 
-        2. **Model Training**
-           - Preprocessing and normalizing input data
-           - Training both Random Forest and Neural Network models
-           - Cross-validation for robust performance
-           - Model evaluation and optimization
+        2. **Frequency**
+           - Determines pulse repetition rate
+           - Influences energy distribution
+           - Critical for hole characteristics
 
-        3. **Prediction System**
-           - Real-time parameter prediction
-           - Batch analysis capabilities
-           - Interactive visualization tools
-           - Uncertainty estimation
+        3. **Power**
+           - Controls energy input
+           - Affects material removal rate
+           - Key for hole depth and quality
 
-        4. **Quality Assurance**
-           - Continuous model validation
-           - Regular performance monitoring
-           - Feedback incorporation
-           - Periodic model updates
+        ### 🎯 Output Predictions
+        1. **Hole Diameter**
+           - Accurate prediction of average hole diameter
+           - Both RF and NN model estimates
+           - Ensemble averaging for better accuracy
+
+        2. **Hole Pitch**
+           - Precise prediction of hole spacing
+           - Multiple model predictions
+           - Optimized for manufacturing requirements
 
         ### 💡 Applications
         - Aerospace component manufacturing
@@ -635,8 +691,6 @@ def main():
         - Performance optimization
         - Enhanced visualization capabilities
         - Expanded parameter range support
-
-       
         """)
 
 if __name__ == "__main__":

@@ -11,31 +11,35 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipe
 from torch.utils.data import Dataset
 import warnings
 import joblib
+import os
 warnings.filterwarnings('ignore')  # Suppress warnings
 
 class LaserMicrodrillingModel:
     def __init__(self):
-        self.rf_model = None
-        self.nn_model = None
+        self.rf_model_diameter = None
+        self.nn_model_diameter = None
+        self.rf_model_pitch = None
+        self.nn_model_pitch = None
         self.scaler = None
         self.feature_names = None
-        self.target_name = None
+        self.target_names = None
         self.nlp_pipeline = None
         
-    def load_data(self, data_path, speed_col, freq_col, diam_col):
+    def load_data(self, data_path, speed_col, freq_col, power_col, diam_col, pitch_col):
         """Load and prepare data for training"""
         print("Loading dataset...")
         self.data = pd.read_excel(data_path)
-        self.feature_names = [speed_col, freq_col]
-        self.target_name = diam_col
+        self.feature_names = [speed_col, freq_col, power_col]
+        self.target_names = [diam_col, pitch_col]
         
         # Create feature DataFrame
-        self.X = pd.DataFrame(self.data[[speed_col, freq_col]])
-        self.y = self.data[diam_col]
+        self.X = pd.DataFrame(self.data[[speed_col, freq_col, power_col]])
+        self.y_diameter = self.data[diam_col]
+        self.y_pitch = self.data[pitch_col]
         
         # Split and scale data
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X, self.y, test_size=0.2, random_state=42
+        self.X_train, self.X_test, self.y_train_diameter, self.y_test_diameter, self.y_train_pitch, self.y_test_pitch = train_test_split(
+            self.X, self.y_diameter, self.y_pitch, test_size=0.2, random_state=42
         )
         
         self.scaler = StandardScaler()
@@ -51,155 +55,112 @@ class LaserMicrodrillingModel:
         )
         
     def train_models(self):
-        """Train both Random Forest and Neural Network models"""
-        # Train Random Forest
-        print("\nTraining Random Forest Model...")
-        self.rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
-        self.rf_model.fit(self.X_train_scaled, self.y_train)
+        """Train both Random Forest and Neural Network models for diameter and pitch"""
+        print("Training models...")
         
-        # Train Neural Network
-        print("\nTraining Neural Network Model...")
-        self.nn_model = self._create_and_train_nn()
+        # Train Random Forest models
+        print("Training Random Forest models...")
+        self.rf_model_diameter = RandomForestRegressor(n_estimators=100, random_state=42)
+        self.rf_model_pitch = RandomForestRegressor(n_estimators=100, random_state=42)
         
-        # Initialize NLP pipeline for general tasks
-        print("\nInitializing NLP pipeline for general tasks...")
-        try:
-            self.nlp_pipeline = pipeline("text-generation", model="gpt2")
-        except Exception as e:
-            print(f"Warning: Could not initialize NLP pipeline. Error: {e}")
-    
-    def _create_and_train_nn(self):
-        """Create and train the neural network model"""
-        class LaserNN(torch.nn.Module):
-            def __init__(self):
+        self.rf_model_diameter.fit(self.X_train_scaled, self.y_train_diameter)
+        self.rf_model_pitch.fit(self.X_train_scaled, self.y_train_pitch)
+        
+        # Train Neural Network models
+        print("Training Neural Network models...")
+        
+        # Define NN architecture for both diameter and pitch
+        class NeuralNetwork(torch.nn.Module):
+            def __init__(self, input_size):
                 super().__init__()
                 self.layers = torch.nn.Sequential(
-                    torch.nn.Linear(2, 64),
+                    torch.nn.Linear(input_size, 64),
                     torch.nn.ReLU(),
+                    torch.nn.Dropout(0.2),
                     torch.nn.Linear(64, 32),
                     torch.nn.ReLU(),
+                    torch.nn.Dropout(0.2),
                     torch.nn.Linear(32, 1)
                 )
-
+            
             def forward(self, x):
                 return self.layers(x)
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = LaserNN().to(device)
         
-        # Create dataset and loader
-        train_features = torch.FloatTensor(self.X_train_scaled.values).to(device)
-        train_targets = torch.FloatTensor(self.y_train.values).to(device)
+        # Initialize and train NN for diameter
+        self.nn_model_diameter = NeuralNetwork(len(self.feature_names))
+        self._train_neural_network(self.nn_model_diameter, self.y_train_diameter, "diameter")
         
+        # Initialize and train NN for pitch
+        self.nn_model_pitch = NeuralNetwork(len(self.feature_names))
+        self._train_neural_network(self.nn_model_pitch, self.y_train_pitch, "pitch")
+    
+    def _train_neural_network(self, model, target_data, target_name):
+        """Helper function to train neural networks"""
         criterion = torch.nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
         
-        # Training loop
-        epochs = 100
-        for epoch in range(epochs):
-            model.train()
-            optimizer.zero_grad()
-            outputs = model(train_features)
-            loss = criterion(outputs.squeeze(), train_targets)
-            loss.backward()
-            optimizer.step()
-            
-            if (epoch + 1) % 10 == 0:
-                print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
+        X_tensor = torch.FloatTensor(self.X_train_scaled.values)
+        y_tensor = torch.FloatTensor(target_data.values.reshape(-1, 1))
         
-        return model
+        epochs = 100
+        batch_size = 32
+        
+        for epoch in range(epochs):
+            for i in range(0, len(X_tensor), batch_size):
+                batch_X = X_tensor[i:i+batch_size]
+                batch_y = y_tensor[i:i+batch_size]
+                
+                optimizer.zero_grad()
+                outputs = model(batch_X)
+                loss = criterion(outputs, batch_y)
+                loss.backward()
+                optimizer.step()
+            
+            if (epoch + 1) % 20 == 0:
+                print(f"Epoch [{epoch+1}/{epochs}], {target_name.capitalize()} Loss: {loss.item():.4f}")
     
     def evaluate_models(self):
-        """Evaluate both models and compare their performance"""
-        # Random Forest Evaluation
-        rf_pred = self.rf_model.predict(self.X_test_scaled)
-        rf_mse = mean_squared_error(self.y_test, rf_pred)
-        rf_rmse = np.sqrt(rf_mse)
-        rf_r2 = r2_score(self.y_test, rf_pred)
+        """Evaluate both models' performance"""
+        print("\nEvaluating models...")
         
-        print("\nRandom Forest Model Performance:")
-        print(f"RMSE: {rf_rmse:.4f}")
-        print(f"R2 Score: {rf_r2:.4f}")
+        # Evaluate Random Forest models
+        rf_pred_diameter = self.rf_model_diameter.predict(self.X_test_scaled)
+        rf_pred_pitch = self.rf_model_pitch.predict(self.X_test_scaled)
         
-        # Neural Network Evaluation
-        self.nn_model.eval()
+        print("\nRandom Forest Performance:")
+        print(f"Diameter - R² Score: {r2_score(self.y_test_diameter, rf_pred_diameter):.4f}")
+        print(f"Pitch - R² Score: {r2_score(self.y_test_pitch, rf_pred_pitch):.4f}")
+        
+        # Evaluate Neural Network models
+        self.nn_model_diameter.eval()
+        self.nn_model_pitch.eval()
         with torch.no_grad():
-            device = next(self.nn_model.parameters()).device
-            test_features = torch.FloatTensor(self.X_test_scaled.values).to(device)
-            nn_pred = self.nn_model(test_features).cpu().numpy().squeeze()
+            nn_pred_diameter = self.nn_model_diameter(torch.FloatTensor(self.X_test_scaled.values)).numpy()
+            nn_pred_pitch = self.nn_model_pitch(torch.FloatTensor(self.X_test_scaled.values)).numpy()
         
-        nn_mse = mean_squared_error(self.y_test, nn_pred)
-        nn_rmse = np.sqrt(nn_mse)
-        nn_r2 = r2_score(self.y_test, nn_pred)
-        
-        print("\nNeural Network Model Performance:")
-        print(f"RMSE: {nn_rmse:.4f}")
-        print(f"R2 Score: {nn_r2:.4f}")
-        
-        # Create visualization
-        self._create_prediction_visualization()
+        print("\nNeural Network Performance:")
+        print(f"Diameter - R² Score: {r2_score(self.y_test_diameter, nn_pred_diameter):.4f}")
+        print(f"Pitch - R² Score: {r2_score(self.y_test_pitch, nn_pred_pitch):.4f}")
     
-    def _create_prediction_visualization(self):
-        """Create contour plot of predictions"""
-        print("\nGenerating prediction visualization...")
-        n_points = 100
-        speed_range = np.linspace(self.X[self.feature_names[0]].min(), 
-                                self.X[self.feature_names[0]].max(), n_points)
-        freq_range = np.linspace(self.X[self.feature_names[1]].min(), 
-                               self.X[self.feature_names[1]].max(), n_points)
-        speed_mesh, freq_mesh = np.meshgrid(speed_range, freq_range)
-        
-        # Prepare prediction points
-        mesh_points = np.column_stack((speed_mesh.ravel(), freq_mesh.ravel()))
-        mesh_df = pd.DataFrame(mesh_points, columns=self.feature_names)
-        mesh_scaled = self.scaler.transform(mesh_df)
-        
-        # Get predictions from both models
-        rf_predictions = self.rf_model.predict(mesh_scaled).reshape(speed_mesh.shape)
-        
-        # Create plots
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
-        
-        # Random Forest predictions
-        contour1 = ax1.contourf(speed_mesh, freq_mesh, rf_predictions, levels=20, cmap='viridis')
-        plt.colorbar(contour1, ax=ax1, label='Predicted Diameter (RF)')
-        ax1.set_xlabel(self.feature_names[0])
-        ax1.set_ylabel(self.feature_names[1])
-        ax1.set_title('Random Forest Predictions')
-        
-        # Neural Network predictions
-        with torch.no_grad():
-            device = next(self.nn_model.parameters()).device
-            nn_input = torch.FloatTensor(mesh_scaled).to(device)
-            nn_predictions = self.nn_model(nn_input).cpu().numpy().reshape(speed_mesh.shape)
-        
-        contour2 = ax2.contourf(speed_mesh, freq_mesh, nn_predictions, levels=20, cmap='viridis')
-        plt.colorbar(contour2, ax=ax2, label='Predicted Diameter (NN)')
-        ax2.set_xlabel(self.feature_names[0])
-        ax2.set_ylabel(self.feature_names[1])
-        ax2.set_title('Neural Network Predictions')
-        
-        plt.tight_layout()
-        plt.savefig('model_predictions_comparison.png')
-        plt.close()
-    
-    def predict_diameter(self, speed, frequency, model_type='rf'):
-        """Predict diameter for given speed and frequency"""
-        input_data = pd.DataFrame([[speed, frequency]], columns=self.feature_names)
+    def predict(self, speed, frequency, power, model_type='rf'):
+        """Predict both diameter and pitch for given parameters"""
+        input_data = pd.DataFrame([[speed, frequency, power]], columns=self.feature_names)
         input_scaled = self.scaler.transform(input_data)
         
         if model_type.lower() == 'rf':
-            prediction = self.rf_model.predict(input_scaled)[0]
+            diameter_pred = self.rf_model_diameter.predict(input_scaled)[0]
+            pitch_pred = self.rf_model_pitch.predict(input_scaled)[0]
         elif model_type.lower() == 'nn':
-            self.nn_model.eval()
+            self.nn_model_diameter.eval()
+            self.nn_model_pitch.eval()
             with torch.no_grad():
-                device = next(self.nn_model.parameters()).device
-                input_tensor = torch.FloatTensor(input_scaled).to(device)
-                prediction = self.nn_model(input_tensor).cpu().numpy()[0][0]
+                input_tensor = torch.FloatTensor(input_scaled)
+                diameter_pred = self.nn_model_diameter(input_tensor).item()
+                pitch_pred = self.nn_model_pitch(input_tensor).item()
         else:
             raise ValueError("model_type must be 'rf' or 'nn'")
         
-        return prediction
+        return diameter_pred, pitch_pred
     
     def process_general_query(self, query):
         """
@@ -340,51 +301,60 @@ class LaserMicrodrillingModel:
         except Exception as e:
             return f"I apologize, but I encountered an error processing your query. Please try rephrasing your question or contact support. Error: {str(e)}"
     
-    def save_models(self, path='laser_models'):
-        """Save trained models and scaler"""
-        import os
-        os.makedirs(path, exist_ok=True)
+    def save_models(self):
+        """Save all models and scaler"""
+        print("\nSaving models...")
+        if not os.path.exists('laser_models'):
+            os.makedirs('laser_models')
         
-        # Save Random Forest model
-        joblib.dump(self.rf_model, f'{path}/rf_model.joblib')
+        # Save Random Forest models
+        joblib.dump(self.rf_model_diameter, 'laser_models/rf_model_diameter.joblib')
+        joblib.dump(self.rf_model_pitch, 'laser_models/rf_model_pitch.joblib')
         
-        # Save Neural Network model
-        torch.save(self.nn_model.state_dict(), f'{path}/nn_model.pth')
+        # Save Neural Network models
+        torch.save(self.nn_model_diameter.state_dict(), 'laser_models/nn_model_diameter.pth')
+        torch.save(self.nn_model_pitch.state_dict(), 'laser_models/nn_model_pitch.pth')
         
         # Save scaler
-        joblib.dump(self.scaler, f'{path}/scaler.joblib')
-        
-        # Save feature names
-        joblib.dump({
-            'feature_names': self.feature_names,
-            'target_name': self.target_name
-        }, f'{path}/metadata.joblib')
-        
-        print(f"Models saved to {path}/")
+        joblib.dump(self.scaler, 'laser_models/scaler.joblib')
     
-    def load_models(self, path='laser_models'):
-        """Load saved models and scaler"""
+    def load_models(self):
+        """Load all saved models and scaler"""
+        print("\nLoading models...")
         try:
-            # Load Random Forest model
-            self.rf_model = joblib.load(f'{path}/rf_model.joblib')
+            # Load Random Forest models
+            self.rf_model_diameter = joblib.load('laser_models/rf_model_diameter.joblib')
+            self.rf_model_pitch = joblib.load('laser_models/rf_model_pitch.joblib')
             
-            # Load Neural Network model
-            self.nn_model = self._create_and_train_nn()  # Create model architecture
-            self.nn_model.load_state_dict(torch.load(f'{path}/nn_model.pth'))
+            # Load Neural Network models
+            class NeuralNetwork(torch.nn.Module):
+                def __init__(self, input_size=3):
+                    super().__init__()
+                    self.layers = torch.nn.Sequential(
+                        torch.nn.Linear(input_size, 64),
+                        torch.nn.ReLU(),
+                        torch.nn.Dropout(0.2),
+                        torch.nn.Linear(64, 32),
+                        torch.nn.ReLU(),
+                        torch.nn.Dropout(0.2),
+                        torch.nn.Linear(32, 1)
+                    )
+                
+                def forward(self, x):
+                    return self.layers(x)
+            
+            self.nn_model_diameter = NeuralNetwork()
+            self.nn_model_pitch = NeuralNetwork()
+            
+            self.nn_model_diameter.load_state_dict(torch.load('laser_models/nn_model_diameter.pth'))
+            self.nn_model_pitch.load_state_dict(torch.load('laser_models/nn_model_pitch.pth'))
             
             # Load scaler
-            self.scaler = joblib.load(f'{path}/scaler.joblib')
-            
-            # Load metadata
-            metadata = joblib.load(f'{path}/metadata.joblib')
-            self.feature_names = metadata['feature_names']
-            self.target_name = metadata['target_name']
+            self.scaler = joblib.load('laser_models/scaler.joblib')
             
             print("Models loaded successfully!")
-            return True
         except Exception as e:
             print(f"Error loading models: {str(e)}")
-            return False
 
 # Example usage
 if __name__ == "__main__":
@@ -412,10 +382,12 @@ if __name__ == "__main__":
     
     speed_col = input("Enter the exact name of the Speed column from above: ")
     freq_col = input("Enter the exact name of the Frequency column from above: ")
+    power_col = input("Enter the exact name of the Power column from above: ")
     diam_col = input("Enter the exact name of the Average Diameter column from above: ")
+    pitch_col = input("Enter the exact name of the Pitch column from above: ")
     
     # Train models
-    model.load_data('EDI_OBSERVATIONS.xlsx', speed_col, freq_col, diam_col)
+    model.load_data('EDI_OBSERVATIONS.xlsx', speed_col, freq_col, power_col, diam_col, pitch_col)
     model.train_models()
     model.evaluate_models()
     
@@ -426,14 +398,15 @@ if __name__ == "__main__":
     print("\nExample Predictions:")
     test_speeds = [model.X[speed_col].mean(), model.X[speed_col].min(), model.X[speed_col].max()]
     test_freqs = [model.X[freq_col].mean(), model.X[freq_col].min(), model.X[freq_col].max()]
+    test_powers = [model.X[power_col].mean(), model.X[power_col].min(), model.X[power_col].max()]
     
     for speed in test_speeds:
         for freq in test_freqs:
-            rf_pred = model.predict_diameter(speed, freq, 'rf')
-            nn_pred = model.predict_diameter(speed, freq, 'nn')
-            print(f"\nInput: {speed_col}={speed:.2f}, {freq_col}={freq:.2f}")
-            print(f"Random Forest Prediction: {rf_pred:.4f}")
-            print(f"Neural Network Prediction: {nn_pred:.4f}")
+            for power in test_powers:
+                diameter_pred, pitch_pred = model.predict(speed, freq, power, 'nn')
+                print(f"\nInput: {speed_col}={speed:.2f}, {freq_col}={freq:.2f}, {power_col}={power:.2f}")
+                print(f"Predicted Diameter: {diameter_pred:.4f}")
+                print(f"Predicted Pitch: {pitch_pred:.4f}")
     
     # Example of general task processing
     print("\nExample of general task processing:")
