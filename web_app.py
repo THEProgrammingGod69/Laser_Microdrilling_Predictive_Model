@@ -601,7 +601,7 @@ def main():
             try:
                 if hasattr(st.session_state.model, 'X') and st.session_state.model.X is not None:
                     # Parameter selection
-                    col1, col2, col3 = st.columns(3)
+                    col1, col2, col3, col4 = st.columns(4)
                     with col1:
                         speed_range = st.slider(
                             "Speed Range",
@@ -625,6 +625,8 @@ def main():
                             float(st.session_state.model.X[st.session_state.model.feature_names[2]].max()),
                             float(st.session_state.model.X[st.session_state.model.feature_names[2]].mean())
                         )
+                    with col4:
+                        loop_count = st.number_input("Enter Loop Count", min_value=1, step=1)
                     
                     # Output type selection
                     output_type = st.radio(
