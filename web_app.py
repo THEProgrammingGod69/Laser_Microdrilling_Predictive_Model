@@ -180,7 +180,7 @@ if 'model' not in st.session_state:
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-def create_3d_surface_plot(model, speed_range, freq_range, power_val, loop_count, output_type='diameter', prediction_type='rf'):
+def create_3d_surface_plot(model, speed_range, freq_range, power_val, output_type='diameter', prediction_type='rf'):
     try:
         speeds = np.linspace(speed_range[0], speed_range[1], 50)
         freqs = np.linspace(freq_range[0], freq_range[1], 50)
@@ -190,9 +190,9 @@ def create_3d_surface_plot(model, speed_range, freq_range, power_val, loop_count
         for i in range(len(speeds)):
             for j in range(len(freqs)):
                 if prediction_type == 'rf':
-                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, loop_count, 'rf')
+                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, 'rf')
                 else:
-                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, loop_count, 'nn')
+                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, 'nn')
                 predictions[j, i] = diameter_pred if output_type == 'diameter' else pitch_pred
         
         fig = go.Figure(data=[go.Surface(
@@ -206,7 +206,7 @@ def create_3d_surface_plot(model, speed_range, freq_range, power_val, loop_count
         model_label = 'Random Forest' if prediction_type == 'rf' else 'Neural Network'
         
         fig.update_layout(
-            title=f'{model_label} {output_label} Predictions (Power = {power_val}, Loop Count = {loop_count})',
+            title=f'{model_label} {output_label} Predictions (Power = {power_val})',
             scene=dict(
                 xaxis_title='Speed',
                 yaxis_title='Frequency',
@@ -645,7 +645,6 @@ def main():
                             speed_range,
                             freq_range,
                             power_val,
-                            loop_count,
                             output_type.lower(),
                             'rf'
                         )
@@ -659,7 +658,6 @@ def main():
                             speed_range,
                             freq_range,
                             power_val,
-                            loop_count,
                             output_type.lower(),
                             'nn'
                         )
