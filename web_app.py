@@ -180,7 +180,7 @@ if 'model' not in st.session_state:
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-def create_3d_surface_plot(model, speed_range, freq_range, power_val, output_type='diameter', prediction_type='rf'):
+def create_3d_surface_plot(model, speed_range, freq_range, power_val, loop_count, output_type='diameter', prediction_type='rf'):
     try:
         speeds = np.linspace(speed_range[0], speed_range[1], 50)
         freqs = np.linspace(freq_range[0], freq_range[1], 50)
@@ -190,9 +190,9 @@ def create_3d_surface_plot(model, speed_range, freq_range, power_val, output_typ
         for i in range(len(speeds)):
             for j in range(len(freqs)):
                 if prediction_type == 'rf':
-                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, 'rf')
+                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, loop_count, 'rf')
                 else:
-                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, 'nn')
+                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, loop_count, 'nn')
                 predictions[j, i] = diameter_pred if output_type == 'diameter' else pitch_pred
         
         fig = go.Figure(data=[go.Surface(
@@ -206,7 +206,7 @@ def create_3d_surface_plot(model, speed_range, freq_range, power_val, output_typ
         model_label = 'Random Forest' if prediction_type == 'rf' else 'Neural Network'
         
         fig.update_layout(
-            title=f'{model_label} {output_label} Predictions (Power = {power_val})',
+            title=f'{model_label} {output_label} Predictions (Power = {power_val}, Loop Count = {loop_count})',
             scene=dict(
                 xaxis_title='Speed',
                 yaxis_title='Frequency',
@@ -228,8 +228,8 @@ def show_beginner_guide():
     
     <h4>What is this tool?</h4>
     This is an advanced predictive tool that helps you:
-    - Predict both hole diameter and pitch in laser-drilled holes
-    - Optimize laser parameters (speed, frequency, and power)
+    - Predict both dimple diameter and pitch in laser-drilled dimples
+    - Optimize laser parameters (speed, frequency, power, and loop count)
     - Analyze trends and patterns in laser microdrilling
     
     <h4>How to Use This Tool:</h4>
@@ -237,17 +237,17 @@ def show_beginner_guide():
     1️⃣ <b>Training the Model</b>
     - Go to "Train Model" in the sidebar
     - Upload your Excel file (EDI_OBSERVATIONS.xlsx)
-    - Select the correct columns for Speed, Frequency, Power, Diameter, and Pitch
+    - Select the correct columns for Speed, Frequency, Power, Loop Count, Diameter, and Pitch
     - Click "Train Models" and wait for completion
     
     2️⃣ <b>Making Predictions</b>
     - Go to "Make Predictions"
-    - Enter Speed, Frequency, and Power values
-    - Click "Predict" to see the estimated hole diameter and pitch
+    - Enter Speed, Frequency, Power, and Loop Count values
+    - Click "Predict" to see the estimated dimple diameter and pitch
     
     3️⃣ <b>Batch Analysis</b>
     - Use this for multiple predictions at once
-    - Set ranges for Speed, Frequency, and Power
+    - Set ranges for Speed, Frequency, Power, and Loop Count
     - Get predictions for multiple combinations
     
     4️⃣ <b>Visualization</b>
@@ -280,7 +280,16 @@ def show_chatbot_interface():
     st.markdown("""
     <div class="chatbot-box">
     <h3>🤖 AI Assistant for Laser Microdrilling</h3>
-    <p>Ask me anything about laser microdrilling, parameter selection, or get help with using this tool!</p>
+    <h4>Type "laser" to get started!</h4>
+    <p>Welcome to the AI Assistant! You can ask me anything about laser microdrilling, parameter selection, or get help with using this tool.</p>
+    <p>Here are some topics you might want to explore:</p>
+    <ul>
+        <li><b>Laser Parameters:</b> Inquire about the optimal settings for speed, frequency, power, and loop count.</li>
+        <li><b>Model Predictions:</b> Ask how to interpret the predictions for dimple diameter and pitch.</li>
+        <li><b>Training Models:</b> Get guidance on how to train the models with your data.</li>
+        <li><b>Batch Analysis:</b> Learn how to perform batch predictions for multiple parameter combinations.</li>
+        <li><b>Visualization:</b> Understand how to visualize the results and trends in your data.</li>
+    </ul>
     </div>
     """, unsafe_allow_html=True)
     
@@ -410,13 +419,15 @@ def main():
                 
                 cols = df.columns.tolist()
                 
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     speed_col = st.selectbox("Select Speed column", cols)
                 with col2:
                     freq_col = st.selectbox("Select Frequency column", cols)
                 with col3:
                     power_col = st.selectbox("Select Power column", cols)
+                with col4:
+                    loop_col = st.selectbox("Select Loop Count column", cols)
                 
                 col1, col2 = st.columns(2)
                 with col1:
@@ -429,7 +440,7 @@ def main():
                         try:
                             if st.session_state.model is None:
                                 st.session_state.model = LaserMicrodrillingModel()
-                            st.session_state.model.load_data(uploaded_file, speed_col, freq_col, power_col, diam_col, pitch_col)
+                            st.session_state.model.load_data(uploaded_file, speed_col, freq_col, power_col, loop_col, diam_col, pitch_col)
                             st.session_state.model.train_models()
                             st.session_state.model.evaluate_models()
                             st.session_state.model.save_models()
@@ -441,10 +452,6 @@ def main():
                             # Diameter Models Performance
                             st.write("Diameter Prediction Models")
                             col1, col2 = st.columns(2)
-                            with col1:
-                                st.write("Random Forest Metrics")
-                                rf_pred_diameter = st.session_state.model.rf_model_diameter.predict(st.session_state.model.X_test_scaled)
-                                st.metric("R² Score", f"{st.session_state.model.r2_score(st.session_state.model.y_test_diameter, rf_pred_diameter):.4f}")
                             with col2:
                                 st.write("Neural Network Metrics")
                                 with torch.no_grad():
@@ -454,10 +461,6 @@ def main():
                             # Pitch Models Performance
                             st.write("Pitch Prediction Models")
                             col1, col2 = st.columns(2)
-                            with col1:
-                                st.write("Random Forest Metrics")
-                                rf_pred_pitch = st.session_state.model.rf_model_pitch.predict(st.session_state.model.X_test_scaled)
-                                st.metric("R² Score", f"{st.session_state.model.r2_score(st.session_state.model.y_test_pitch, rf_pred_pitch):.4f}")
                             with col2:
                                 st.write("Neural Network Metrics")
                                 with torch.no_grad():
@@ -475,23 +478,25 @@ def main():
             st.warning("Please train or load models first!")
         else:
             try:
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     speed = st.number_input("Enter Speed", min_value=0.0)
                 with col2:
                     freq = st.number_input("Enter Frequency", min_value=0.0)
                 with col3:
                     power = st.number_input("Enter Power", min_value=0.0)
+                with col4:
+                    loop_count = st.number_input("Enter Loop Count", min_value=1, step=1)
                 
                 if st.button("Predict"):
                     try:
-                        rf_diameter, rf_pitch = st.session_state.model.predict(speed, freq, power, 'rf')
-                        nn_diameter, nn_pitch = st.session_state.model.predict(speed, freq, power, 'nn')
+                        rf_diameter, rf_pitch = st.session_state.model.predict(speed, freq, power, loop_count, 'rf')
+                        nn_diameter, nn_pitch = st.session_state.model.predict(speed, freq, power, loop_count, 'nn')
                         avg_diameter = (rf_diameter + nn_diameter) / 2
                         avg_pitch = (rf_pitch + nn_pitch) / 2
                         
                         # Display Diameter Predictions
-                        st.subheader("Diameter Predictions")
+                        st.subheader("Dimple Diameter Predictions")
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             st.metric("Random Forest", f"{rf_diameter:.4f}")
@@ -501,7 +506,7 @@ def main():
                             st.metric("Average", f"{avg_diameter:.4f}")
                         
                         # Display Pitch Predictions
-                        st.subheader("Pitch Predictions")
+                        st.subheader("Dimple Pitch Predictions")
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             st.metric("Random Forest", f"{rf_pitch:.4f}")
@@ -534,33 +539,39 @@ def main():
                     power_min = st.number_input("Minimum Power", min_value=0.0)
                     power_max = st.number_input("Maximum Power", min_value=power_min)
                 with col2:
-                    steps = st.number_input("Number of steps", min_value=2, value=5)
+                    loop_min = st.number_input("Minimum Loop Count", min_value=1, step=1)
+                    loop_max = st.number_input("Maximum Loop Count", min_value=loop_min, step=1)
+                
+                steps = st.number_input("Number of steps", min_value=2, value=5)
                 
                 if st.button("Generate Predictions"):
                     try:
                         speeds = np.linspace(speed_min, speed_max, steps)
                         freqs = np.linspace(freq_min, freq_max, steps)
                         powers = np.linspace(power_min, power_max, steps)
+                        loops = np.linspace(loop_min, loop_max, steps, dtype=int)
                         
                         results = []
                         for speed in speeds:
                             for freq in freqs:
                                 for power in powers:
-                                    rf_diameter, rf_pitch = st.session_state.model.predict(speed, freq, power, 'rf')
-                                    nn_diameter, nn_pitch = st.session_state.model.predict(speed, freq, power, 'nn')
-                                    avg_diameter = (rf_diameter + nn_diameter) / 2
-                                    avg_pitch = (rf_pitch + nn_pitch) / 2
-                                    results.append({
-                                        'Speed': speed,
-                                        'Frequency': freq,
-                                        'Power': power,
-                                        'RF Diameter': rf_diameter,
-                                        'NN Diameter': nn_diameter,
-                                        'Average Diameter': avg_diameter,
-                                        'RF Pitch': rf_pitch,
-                                        'NN Pitch': nn_pitch,
-                                        'Average Pitch': avg_pitch
-                                    })
+                                    for loop in loops:
+                                        rf_diameter, rf_pitch = st.session_state.model.predict(speed, freq, power, loop, 'rf')
+                                        nn_diameter, nn_pitch = st.session_state.model.predict(speed, freq, power, loop, 'nn')
+                                        avg_diameter = (rf_diameter + nn_diameter) / 2
+                                        avg_pitch = (rf_pitch + nn_pitch) / 2
+                                        results.append({
+                                            'Speed': speed,
+                                            'Frequency': freq,
+                                            'Power': power,
+                                            'Loop Count': loop,
+                                            'RF Diameter': rf_diameter,
+                                            'NN Diameter': nn_diameter,
+                                            'Average Diameter': avg_diameter,
+                                            'RF Pitch': rf_pitch,
+                                            'NN Pitch': nn_pitch,
+                                            'Average Pitch': avg_pitch
+                                        })
                         
                         results_df = pd.DataFrame(results)
                         st.write("Prediction Results:")
@@ -630,6 +641,7 @@ def main():
                             speed_range,
                             freq_range,
                             power_val,
+                            loop_count,
                             output_type.lower(),
                             'rf'
                         )
@@ -642,6 +654,7 @@ def main():
                             speed_range,
                             freq_range,
                             power_val,
+                            loop_count,
                             output_type.lower(),
                             'nn'
                         )
@@ -660,10 +673,10 @@ def main():
 
         ### 🎯 Our Goal
         Our primary objective is to optimize laser microdrilling processes by:
-        - Predicting both hole diameter and pitch accurately
-        - Optimizing speed, frequency, and power parameters
+        - Predicting both dimple diameter and pitch accurately
+        - Optimizing speed, frequency, power, and loop count parameters
         - Reducing the time and resources spent on parameter optimization
-        - Improving hole quality and consistency
+        - Improving dimple quality and consistency
         - Minimizing the need for trial-and-error experiments
         - Providing data-driven insights for process improvement
 
@@ -688,26 +701,31 @@ def main():
         1. **Speed**
            - Controls the movement rate
            - Affects processing time and quality
-           - Key factor in hole formation
+           - Key factor in dimple formation
 
         2. **Frequency**
            - Determines pulse repetition rate
            - Influences energy distribution
-           - Critical for hole characteristics
+           - Critical for dimple characteristics
 
         3. **Power**
            - Controls energy input
            - Affects material removal rate
-           - Key for hole depth and quality
+           - Key for dimple depth and quality
+
+        4. **Loop Count**
+           - Determines number of passes
+           - Influences dimple depth
+           - Affects overall processing time
 
         ### 🎯 Output Predictions
-        1. **Hole Diameter**
-           - Accurate prediction of average hole diameter
+        1. **Dimple Diameter**
+           - Accurate prediction of average dimple diameter
            - Both RF and NN model estimates
            - Ensemble averaging for better accuracy
 
-        2. **Hole Pitch**
-           - Precise prediction of hole spacing
+        2. **Dimple Pitch**
+           - Precise prediction of dimple spacing
            - Multiple model predictions
            - Optimized for manufacturing requirements
 
