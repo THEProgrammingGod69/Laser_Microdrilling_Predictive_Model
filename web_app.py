@@ -490,8 +490,9 @@ def main():
                 
                 if st.button("Predict"):
                     try:
-                        rf_diameter, rf_pitch = st.session_state.model.predict(speed, freq, power, loop_count, 'rf')
-                        nn_diameter, nn_pitch = st.session_state.model.predict(speed, freq, power, loop_count, 'nn')
+                        # Remove loop_count from the predict calls
+                        rf_diameter, rf_pitch = st.session_state.model.predict(speed, freq, power, 'rf')
+                        nn_diameter, nn_pitch = st.session_state.model.predict(speed, freq, power, 'nn')
                         avg_diameter = (rf_diameter + nn_diameter) / 2
                         avg_pitch = (rf_pitch + nn_pitch) / 2
                         
