@@ -639,7 +639,8 @@ def main():
                     tab1, tab2 = st.tabs(["Random Forest", "Neural Network"])
                     
                     with tab1:
-                        rf_diameter, rf_pitch = st.session_state.model.predict(speed_range[0], freq_range[0], power_val, loop_count, 'rf')
+                        # Remove loop_count from the predict calls
+                        rf_diameter, rf_pitch = st.session_state.model.predict(speed_range[0], freq_range[0], power_val, 'rf')
                         rf_fig = create_3d_surface_plot(
                             st.session_state.model,
                             speed_range,
@@ -652,7 +653,7 @@ def main():
                             st.plotly_chart(rf_fig)
                     
                     with tab2:
-                        nn_diameter, nn_pitch = st.session_state.model.predict(speed_range[0], freq_range[0], power_val, loop_count, 'nn')
+                        nn_diameter, nn_pitch = st.session_state.model.predict(speed_range[0], freq_range[0], power_val, 'nn')
                         nn_fig = create_3d_surface_plot(
                             st.session_state.model,
                             speed_range,
