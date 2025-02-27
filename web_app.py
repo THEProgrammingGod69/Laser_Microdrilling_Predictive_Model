@@ -440,7 +440,7 @@ def main():
                         try:
                             if st.session_state.model is None:
                                 st.session_state.model = LaserMicrodrillingModel()
-                            st.session_state.model.load_data(uploaded_file, speed_col, freq_col, power_col, diam_col, pitch_col)
+                            st.session_state.model.load_data(speed_col, freq_col, power_col, diam_col, pitch_col)
                             st.session_state.model.train_models()
                             st.session_state.model.evaluate_models()
                             st.session_state.model.save_models()
