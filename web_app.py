@@ -180,7 +180,7 @@ if 'model' not in st.session_state:
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-def create_3d_surface_plot(model, speed_range, freq_range, prediction_type='rf'):
+def create_3d_surface_plot(model, speed_range, freq_range, power_val, output_type='diameter', prediction_type='rf'):
     try:
         speeds = np.linspace(speed_range[0], speed_range[1], 50)
         freqs = np.linspace(freq_range[0], freq_range[1], 50)
@@ -189,11 +189,11 @@ def create_3d_surface_plot(model, speed_range, freq_range, prediction_type='rf')
         predictions = np.zeros_like(speed_mesh)
         for i in range(len(speeds)):
             for j in range(len(freqs)):
-                predictions[j, i] = model.predict_diameter(
-                    speed_mesh[j, i], 
-                    freq_mesh[j, i], 
-                    prediction_type
-                )
+                if prediction_type == 'rf':
+                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, 'rf')
+                else:
+                    diameter_pred, pitch_pred = model.predict(speed_mesh[j, i], freq_mesh[j, i], power_val, 'nn')
+                predictions[j, i] = diameter_pred if output_type == 'diameter' else pitch_pred
         
         fig = go.Figure(data=[go.Surface(
             x=speed_mesh,
@@ -202,12 +202,15 @@ def create_3d_surface_plot(model, speed_range, freq_range, prediction_type='rf')
             colorscale='viridis'
         )])
         
+        output_label = 'Diameter' if output_type == 'diameter' else 'Pitch'
+        model_label = 'Random Forest' if prediction_type == 'rf' else 'Neural Network'
+        
         fig.update_layout(
-            title=f'{"Random Forest" if prediction_type=="rf" else "Neural Network"} Predictions',
+            title=f'{model_label} {output_label} Predictions (Power = {power_val})',
             scene=dict(
                 xaxis_title='Speed',
                 yaxis_title='Frequency',
-                zaxis_title='Predicted Diameter'
+                zaxis_title=f'Predicted {output_label}'
             ),
             width=600,
             height=600
@@ -225,8 +228,8 @@ def show_beginner_guide():
     
     <h4>What is this tool?</h4>
     This is an advanced predictive tool that helps you:
-    - Predict the diameter of laser-drilled holes
-    - Optimize laser parameters (speed and frequency)
+    - Predict both hole diameter and pitch in laser-drilled holes
+    - Optimize laser parameters (speed, frequency, and power)
     - Analyze trends and patterns in laser microdrilling
     
     <h4>How to Use This Tool:</h4>
@@ -234,23 +237,24 @@ def show_beginner_guide():
     1️⃣ <b>Training the Model</b>
     - Go to "Train Model" in the sidebar
     - Upload your Excel file (EDI_OBSERVATIONS.xlsx)
-    - Select the correct columns for Speed, Frequency, and Diameter
+    - Select the correct columns for Speed, Frequency, Power, Diameter, and Pitch
     - Click "Train Models" and wait for completion
     
     2️⃣ <b>Making Predictions</b>
     - Go to "Make Predictions"
-    - Enter Speed and Frequency values
-    - Click "Predict" to see the estimated hole diameter
+    - Enter Speed, Frequency, and Power values
+    - Click "Predict" to see the estimated hole diameter and pitch
     
     3️⃣ <b>Batch Analysis</b>
     - Use this for multiple predictions at once
-    - Set ranges for Speed and Frequency
+    - Set ranges for Speed, Frequency, and Power
     - Get predictions for multiple combinations
     
     4️⃣ <b>Visualization</b>
     - View 3D plots of predictions
     - Compare Random Forest and Neural Network results
     - Analyze trends across different parameters
+    - Visualize both diameter and pitch predictions
     
     5️⃣ <b>General Queries</b>
     - Use the chatbot for general questions
@@ -261,6 +265,7 @@ def show_beginner_guide():
     - Use data within the trained range
     - Compare both model predictions
     - Start with small parameter ranges
+    - Consider the relationship between parameters
     - Use the chatbot for guidance
     
     <h4>Need Help?</h4>
@@ -583,7 +588,8 @@ def main():
         else:
             try:
                 if hasattr(st.session_state.model, 'X') and st.session_state.model.X is not None:
-                    col1, col2 = st.columns(2)
+                    # Parameter selection
+                    col1, col2, col3 = st.columns(3)
                     with col1:
                         speed_range = st.slider(
                             "Speed Range",
@@ -600,16 +606,45 @@ def main():
                             (float(st.session_state.model.X[st.session_state.model.feature_names[1]].min()),
                              float(st.session_state.model.X[st.session_state.model.feature_names[1]].max()))
                         )
+                    with col3:
+                        power_val = st.slider(
+                            "Power Value",
+                            float(st.session_state.model.X[st.session_state.model.feature_names[2]].min()),
+                            float(st.session_state.model.X[st.session_state.model.feature_names[2]].max()),
+                            float(st.session_state.model.X[st.session_state.model.feature_names[2]].mean())
+                        )
                     
+                    # Output type selection
+                    output_type = st.radio(
+                        "Select Output to Visualize",
+                        ["Diameter", "Pitch"],
+                        horizontal=True
+                    )
+                    
+                    # Model tabs
                     tab1, tab2 = st.tabs(["Random Forest", "Neural Network"])
                     
                     with tab1:
-                        rf_fig = create_3d_surface_plot(st.session_state.model, speed_range, freq_range, 'rf')
+                        rf_fig = create_3d_surface_plot(
+                            st.session_state.model,
+                            speed_range,
+                            freq_range,
+                            power_val,
+                            output_type.lower(),
+                            'rf'
+                        )
                         if rf_fig:
                             st.plotly_chart(rf_fig)
                     
                     with tab2:
-                        nn_fig = create_3d_surface_plot(st.session_state.model, speed_range, freq_range, 'nn')
+                        nn_fig = create_3d_surface_plot(
+                            st.session_state.model,
+                            speed_range,
+                            freq_range,
+                            power_val,
+                            output_type.lower(),
+                            'nn'
+                        )
                         if nn_fig:
                             st.plotly_chart(nn_fig)
                 else:
