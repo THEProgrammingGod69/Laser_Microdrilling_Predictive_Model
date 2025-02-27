@@ -25,10 +25,10 @@ class LaserMicrodrillingModel:
         self.target_names = None
         self.nlp_pipeline = None
         
-    def load_data(self, speed_col, freq_col, power_col, diam_col, pitch_col):
+    def load_data(self, data, speed_col, freq_col, power_col, diam_col, pitch_col):
         """Load and prepare data for training"""
         print("Loading dataset...")
-        self.data = pd.read_excel('EDI_OBSERVATIONS.xlsx')
+        self.data = data  # Use the passed DataFrame directly
         self.feature_names = [speed_col, freq_col, power_col]
         self.target_names = [diam_col, pitch_col]
         
@@ -387,7 +387,7 @@ if __name__ == "__main__":
     pitch_col = input("Enter the exact name of the Pitch column from above: ")
     
     # Train models
-    model.load_data(speed_col, freq_col, power_col, diam_col, pitch_col)
+    model.load_data(data, speed_col, freq_col, power_col, diam_col, pitch_col)
     model.train_models()
     model.evaluate_models()
     
