@@ -757,9 +757,10 @@ def main():
             st.warning("Please train or load models first!")
         else:
             try:
-                # Assuming you have a method to get predictions and actual values
-                predictions_diameter = st.session_state.model.predict_diameter()  # Replace with actual method
-                predictions_pitch = st.session_state.model.predict_pitch()  # Replace with actual method
+                # Use the correct method for predictions
+                # Assuming you have a method to get predictions
+                predictions_diameter = st.session_state.model.predict(speed, frequency, power, 'rf')  # Adjust as necessary
+                predictions_pitch = st.session_state.model.predict(speed, frequency, power, 'nn')  # Adjust as necessary
                 
                 # Assuming you have actual values stored in the model
                 actual_diameter = st.session_state.model.y_test_diameter
