@@ -774,7 +774,7 @@ def main():
                 actual_diameter = st.session_state.model.y_test_diameter
                 actual_pitch = st.session_state.model.y_test_pitch
                 
-                # Calculate error percentage
+                # Calculate error percentage based on actual values
                 diameter_errors = np.abs((predictions_diameter - actual_diameter) / actual_diameter) * 100
                 pitch_errors = np.abs((predictions_pitch - actual_pitch) / actual_pitch) * 100
                 
