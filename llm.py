@@ -175,122 +175,54 @@ class LaserMicrodrillingModel:
         try:
             # Define comprehensive responses for frequently asked questions
             common_responses = {
-                # Basic Concepts and Definitions
                 "what is laser microdrilling": "Laser microdrilling is a precision manufacturing process that uses focused laser beams to create very small holes in materials. It's commonly used in aerospace, electronics, and medical device manufacturing.",
                 "how does laser microdrilling work": "Laser microdrilling works by focusing a high-power laser beam onto a material's surface. The laser's energy vaporizes or melts the material, creating precise holes. The process is controlled by parameters like laser power, speed, and frequency.",
                 "what is the principle": "The principle of laser microdrilling is based on material removal through laser-matter interaction. When a focused laser beam hits the material surface, it causes localized heating, melting, and vaporization, creating a hole through controlled material removal.",
-                
-                # Process Parameters and Controls
-                "what are the key parameters": "Key parameters in laser microdrilling include: 1) Laser power, 2) Pulse frequency, 3) Drilling speed, 4) Focus position, 5) Assist gas pressure, 6) Pulse duration, 7) Beam quality, 8) Material properties.",
-                "how to control hole size": "Hole size in laser microdrilling can be controlled through: 1) Laser power adjustment, 2) Focus position optimization, 3) Pulse frequency selection, 4) Drilling speed control, 5) Multiple pass strategies, 6) Beam shaping techniques.",
-                "what affects drilling speed": "Drilling speed is affected by: 1) Material thickness, 2) Material properties, 3) Laser power, 4) Required hole quality, 5) Assist gas parameters, 6) Focal length, 7) Beam characteristics.",
-                
-                # Materials and Applications
-                "what materials can be processed": "Laser microdrilling can process: 1) Metals (steel, aluminum, titanium), 2) Ceramics, 3) Polymers, 4) Composites, 5) Semiconductors, 6) Glass, 7) Aerospace alloys, 8) Medical-grade materials.",
-                "what are the applications": "Applications include: 1) Aerospace components, 2) Electronic circuit boards, 3) Medical devices, 4) Fuel injection nozzles, 5) Filtration systems, 6) Cooling holes in turbine blades, 7) Microfluidic devices, 8) Precision instruments.",
-                "industry uses": "Industries using laser microdrilling: 1) Aerospace, 2) Automotive, 3) Electronics, 4) Medical devices, 5) Energy sector, 6) Chemical processing, 7) Research facilities, 8) Defense.",
-                
-                # Quality and Optimization
-                "what affects hole quality": "Hole quality factors: 1) Laser parameters, 2) Material properties, 3) Process conditions, 4) Environmental factors, 5) System calibration, 6) Assist gas flow, 7) Focus position, 8) Material preparation.",
-                "how to improve accuracy": "Improve accuracy by: 1) Proper material preparation, 2) System calibration, 3) Parameter optimization, 4) Environmental control, 5) Regular maintenance, 6) Quality monitoring, 7) Process validation.",
-                "quality control methods": "Quality control methods: 1) Visual inspection, 2) Microscopy, 3) Dimensional measurement, 4) Roundness testing, 5) Surface roughness analysis, 6) Statistical process control, 7) Automated inspection.",
-                
-                # Process Optimization
-                "how to optimize process": "Process optimization involves: 1) Parameter study, 2) DOE approach, 3) Statistical analysis, 4) Quality monitoring, 5) Process validation, 6) Continuous improvement, 7) Feedback control.",
-                "best practices": "Best practices include: 1) Regular calibration, 2) Material preparation, 3) Parameter verification, 4) Quality checks, 5) Process documentation, 6) Operator training, 7) Maintenance schedule.",
-                "process monitoring": "Monitor: 1) Laser power, 2) Beam quality, 3) Process emissions, 4) Temperature, 5) Assist gas flow, 6) Focus position, 7) Material positioning.",
-                
-                # Troubleshooting
-                "common problems": "Common issues: 1) Irregular hole shape, 2) Taper formation, 3) Heat affected zone, 4) Recast layer, 5) Spatter formation, 6) Incomplete penetration, 7) Surface damage.",
-                "how to fix quality issues": "Fix quality issues by: 1) Parameter adjustment, 2) System maintenance, 3) Material preparation, 4) Process validation, 5) Environmental control, 6) Tool optimization.",
-                "process defects": "Common defects: 1) Hole taper, 2) Surface roughness, 3) Recast layer, 4) Microcracks, 5) Heat affected zone, 6) Spatter, 7) Incomplete penetration.",
-                
-                # Advanced Topics
-                "advanced techniques": "Advanced techniques: 1) Trepanning, 2) Helical drilling, 3) Percussion drilling, 4) Multi-pulse strategies, 5) Beam shaping, 6) Process monitoring.",
-                "new developments": "Recent developments: 1) Ultrafast lasers, 2) Beam shaping, 3) Process monitoring, 4) Automation, 5) Quality control, 6) Material processing.",
-                "future trends": "Future trends: 1) AI integration, 2) Process automation, 3) Quality monitoring, 4) Sustainable processing, 5) New materials, 6) Industry 4.0 integration.",
-                
-                # Safety and Environment
-                "safety measures": "Safety measures: 1) Laser safety protocols, 2) PPE requirements, 3) Enclosure systems, 4) Ventilation, 5) Training programs, 6) Emergency procedures.",
-                "environmental impact": "Environmental considerations: 1) Energy efficiency, 2) Waste management, 3) Emission control, 4) Resource optimization, 5) Sustainable practices.",
-                "safety equipment": "Required safety equipment: 1) Laser safety glasses, 2) Enclosures, 3) Ventilation systems, 4) Warning signs, 5) Emergency stops, 6) Monitoring systems.",
-                
-                # Equipment and Setup
-                "equipment needed": "Required equipment: 1) Laser source, 2) Beam delivery system, 3) Motion system, 4) Control system, 5) Assist gas supply, 6) Monitoring devices.",
-                "system setup": "System setup includes: 1) Laser alignment, 2) Focus adjustment, 3) Gas supply connection, 4) Control system setup, 5) Safety system verification.",
-                "maintenance requirements": "Maintenance needs: 1) Regular calibration, 2) Optics cleaning, 3) Alignment checks, 4) Gas system maintenance, 5) Safety system verification.",
-                
-                # Process Selection
-                "when to use": "Use laser microdrilling when: 1) High precision needed, 2) Small hole sizes required, 3) Complex materials, 4) High production rates, 5) Quality critical.",
-                "advantages": "Advantages: 1) High precision, 2) No tool wear, 3) Complex geometries, 4) Various materials, 5) Automated process, 6) Consistent quality.",
-                "limitations": "Limitations: 1) Initial cost, 2) Material restrictions, 3) Heat effects, 4) Energy consumption, 5) Technical expertise needed.",
-                
-                # Cost and Economics
-                "cost factors": "Cost factors: 1) Equipment investment, 2) Operating costs, 3) Maintenance, 4) Material costs, 5) Labor, 6) Energy consumption.",
-                "economic benefits": "Economic benefits: 1) High productivity, 2) Reduced waste, 3) Consistent quality, 4) Lower labor costs, 5) Flexible production.",
-                "roi calculation": "ROI considerations: 1) Equipment costs, 2) Operating expenses, 3) Production rates, 4) Quality improvements, 5) Reduced waste.",
-                
-                # Training and Skills
-                "required skills": "Required skills: 1) Laser operation, 2) Process control, 3) Quality inspection, 4) Safety procedures, 5) Troubleshooting, 6) Documentation.",
-                "training needs": "Training requirements: 1) Safety protocols, 2) Equipment operation, 3) Process control, 4) Quality assessment, 5) Maintenance procedures.",
-                "operator qualifications": "Operator needs: 1) Technical background, 2) Safety certification, 3) Process knowledge, 4) Quality control skills, 5) Documentation ability.",
-                
-                # Quality Standards
-                "quality standards": "Quality standards: 1) ISO requirements, 2) Industry specifications, 3) Customer requirements, 4) Internal standards, 5) Safety regulations.",
-                "certification requirements": "Certifications: 1) ISO 9001, 2) Industry specific, 3) Safety standards, 4) Environmental compliance, 5) Quality system requirements.",
-                "inspection methods": "Inspection methods: 1) Visual inspection, 2) Dimensional measurement, 3) Surface analysis, 4) Metallographic examination, 5) Non-destructive testing.",
-                
-                # Process Integration
-                "system integration": "Integration aspects: 1) Production line setup, 2) Control systems, 3) Data collection, 4) Quality monitoring, 5) Process automation.",
-                "automation options": "Automation includes: 1) Material handling, 2) Process control, 3) Quality inspection, 4) Data collection, 5) Report generation.",
-                "industry 4.0": "Industry 4.0 features: 1) Data analytics, 2) Process monitoring, 3) Predictive maintenance, 4) Quality control, 5) Remote operation.",
-                
-                # Research and Development
-                "research areas": "Research focus: 1) New materials, 2) Process optimization, 3) Quality improvement, 4) Cost reduction, 5) Sustainability.",
-                "recent advances": "Recent advances: 1) Ultrafast lasers, 2) Process monitoring, 3) Automation, 4) Quality control, 5) New applications.",
-                "future developments": "Future developments: 1) AI integration, 2) Smart manufacturing, 3) New materials, 4) Process optimization, 5) Sustainability.",
-                
-                # Specific Parameters
-                "speed effects": "Speed affects: 1) Hole quality, 2) Production rate, 3) Heat effects, 4) Material removal, 5) Process stability.",
-                "frequency impact": "Frequency impacts: 1) Hole size, 2) Quality, 3) Heat effects, 4) Material removal, 5) Process efficiency.",
-                "power settings": "Power settings affect: 1) Penetration depth, 2) Processing speed, 3) Heat effects, 4) Quality, 5) Material removal.",
-                
-                # Process Monitoring
-                "monitoring methods": "Monitoring includes: 1) Power measurement, 2) Process emissions, 3) Temperature control, 4) Quality inspection, 5) Data collection.",
-                "quality control": "Quality control: 1) In-process monitoring, 2) Post-process inspection, 3) Statistical analysis, 4) Documentation, 5) Feedback control.",
-                "process control": "Process control: 1) Parameter monitoring, 2) Quality checks, 3) Feedback systems, 4) Data analysis, 5) Adjustment procedures.",
-                
-                # Maintenance and Service
-                "maintenance schedule": "Maintenance includes: 1) Daily checks, 2) Weekly cleaning, 3) Monthly calibration, 4) Quarterly service, 5) Annual overhaul.",
-                "service requirements": "Service needs: 1) Regular inspection, 2) Component replacement, 3) Calibration, 4) Safety checks, 5) Performance validation.",
-                "troubleshooting guide": "Troubleshooting: 1) Visual inspection, 2) Parameter check, 3) System diagnostics, 4) Component testing, 5) Performance validation.",
-                
-                # Documentation and Records
-                "required documentation": "Documentation needs: 1) Process parameters, 2) Quality records, 3) Maintenance logs, 4) Training records, 5) Safety procedures.",
-                "record keeping": "Keep records of: 1) Process parameters, 2) Quality data, 3) Maintenance activities, 4) Training, 5) Safety incidents.",
-                "quality records": "Quality records: 1) Process parameters, 2) Inspection results, 3) Non-conformance reports, 4) Corrective actions, 5) Validation data.",
-                
-                # Tool Usage
-                "how to use this tool": "To use this tool: 1) Upload your dataset, 2) Select columns, 3) Train models, 4) Make predictions, 5) Analyze results, 6) Optimize parameters.",
-                "what do the models predict": "Our models predict hole diameter based on: 1) Drilling speed, 2) Laser frequency, using both Random Forest and Neural Network approaches.",
-                "model capabilities": "Model capabilities: 1) Diameter prediction, 2) Parameter optimization, 3) Process analysis, 4) Quality estimation, 5) Performance evaluation."
+                "what is a dimple": "A dimple refers to the small, concave indentation created in a material during the laser microdrilling process. It is critical in applications requiring precise hole sizes and shapes.",
+                "what is pitch": "Pitch refers to the distance between two adjacent dimples or holes in a material. It is crucial for applications requiring specific spacing for functionality.",
+                "what is a hatch pattern": "A hatch pattern is a specific arrangement of laser passes used to create a series of dimples or holes in a material. It affects the efficiency of the drilling process and the quality of the final product.",
+                "what is spacing": "Spacing refers to the distance between individual dimples or holes, important for ensuring that the holes do not interfere with each other.",
+                "what are laser parameters": "Key laser parameters include power, frequency, speed, and pulse duration, all of which influence the quality and characteristics of the drilled holes.",
+                "what materials can be processed": "Laser microdrilling can process metals, ceramics, polymers, composites, semiconductors, and glass.",
+                "what are the applications": "Applications include aerospace components, medical devices, electronic circuit boards, fuel injection nozzles, and microfluidic devices.",
+                "how to control hole size": "Hole size can be controlled by adjusting laser power, focus position, pulse frequency, and drilling speed.",
+                "what affects drilling speed": "Drilling speed is affected by material thickness, material properties, laser power, and required hole quality.",
+                "what is the importance of thermal conductivity": "Thermal conductivity affects how heat is dissipated during the drilling process, influencing dimple quality.",
+                "what is the absorption coefficient": "The absorption coefficient determines how well the material absorbs laser energy, impacting the efficiency of the drilling process.",
+                "how to improve accuracy": "Improve accuracy by ensuring proper material preparation, system calibration, and parameter optimization.",
+                "what are common problems": "Common issues include irregular hole shapes, taper formation, heat affected zones, and incomplete penetration.",
+                "how to fix quality issues": "Fix quality issues by adjusting parameters, performing system maintenance, and ensuring proper material preparation.",
+                "what are advanced techniques": "Advanced techniques include trepanning, percussion drilling, and multi-pulse strategies.",
+                "what are safety measures": "Safety measures include implementing laser safety protocols, using personal protective equipment (PPE), and ensuring proper ventilation.",
+                "what is the environmental impact": "Environmental considerations include energy efficiency, waste management, and emission control.",
+                "what are cost factors": "Cost factors include equipment investment, operating costs, maintenance, and material costs.",
+                "what are required skills": "Required skills include laser operation, process control, quality inspection, and safety procedures.",
+                "what are quality standards": "Quality standards include ISO requirements, industry specifications, and customer requirements.",
+                "what is system integration": "System integration involves setting up production lines, control systems, and data collection mechanisms.",
+                "what are the economic benefits": "Economic benefits include high productivity, reduced waste, consistent quality, and lower labor costs.",
+                "what is the future of laser microdrilling": "Future trends include AI integration, process automation, and sustainable practices."
             }
             
             # Check if the query matches any common questions
             query_lower = query.lower()
             for key, response in common_responses.items():
-                if any(word in query_lower for word in key.split()):
+                if key in query_lower:
                     return response
             
             # For queries about specific parameters
-            if "speed" in query_lower:
-                return "Drilling speed is a crucial parameter that affects hole quality. Higher speeds generally result in smaller hole diameters but may affect quality. Use our prediction tool to find optimal speed values for your application."
+            if "dimple" in query_lower:
+                return "A dimple refers to the small, concave indentation created in a material during the laser microdrilling process. It is critical in applications requiring precise hole sizes and shapes."
             
-            if "frequency" in query_lower:
-                return "Laser frequency determines how many pulses are delivered per second. Higher frequencies can lead to more precise holes but may require optimization. Our model can help you find the best frequency for your needs."
+            if "pitch" in query_lower:
+                return "Pitch refers to the distance between two adjacent dimples or holes in a material, crucial for applications requiring specific spacing for functionality."
             
-            if "diameter" in query_lower:
-                return "Hole diameter is the key output parameter we predict. It's influenced by both speed and frequency. Our models can help you achieve the desired diameter by suggesting optimal parameter combinations."
+            if "hatch pattern" in query_lower:
+                return "A hatch pattern is a specific arrangement of laser passes used to create a series of dimples or holes in a material, affecting the efficiency of the drilling process."
+            
+            if "spacing" in query_lower:
+                return "Spacing refers to the distance between individual dimples or holes, important for ensuring that the holes do not interfere with each other."
+            
+            # Add more terms as needed...
             
             # If no specific match, provide a general response
             return ("I understand you're asking about laser microdrilling. While I can provide general guidance, "
