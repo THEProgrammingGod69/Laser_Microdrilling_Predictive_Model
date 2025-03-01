@@ -319,7 +319,7 @@ def main():
     st.title("🔧 Laser Microdrilling Predictor")
     
     # Sidebar navigation with direct page updates
-    pages = ["Home", "Beginner's Guide", "Train Model", "Make Predictions", "Batch Analysis", "Visualization", "General Queries", "About"]
+    pages = ["Home", "Beginner's Guide", "Train Model", "Make Predictions", "Batch Analysis", "Visualization", "General Queries", "About", "Error Analysis"]
     
     # Initialize the session state for navigation if not exists
     if 'current_page' not in st.session_state:
@@ -749,6 +749,45 @@ def main():
         - Enhanced visualization capabilities
         - Expanded parameter range support
         """)
+
+    elif selected_page == "Error Analysis":
+        st.header("Error Analysis")
+        
+        if st.session_state.model is None or st.session_state.model.rf_model_diameter is None:
+            st.warning("Please train or load models first!")
+        else:
+            try:
+                # Assuming you have a method to get predictions and actual values
+                predictions_diameter = st.session_state.model.predict_diameter()  # Replace with actual method
+                predictions_pitch = st.session_state.model.predict_pitch()  # Replace with actual method
+                
+                # Assuming you have actual values stored in the model
+                actual_diameter = st.session_state.model.y_test_diameter
+                actual_pitch = st.session_state.model.y_test_pitch
+                
+                # Calculate error percentage
+                diameter_errors = np.abs((predictions_diameter - actual_diameter) / actual_diameter) * 100
+                pitch_errors = np.abs((predictions_pitch - actual_pitch) / actual_pitch) * 100
+                
+                # Calculate average error percentage
+                avg_diameter_error = np.mean(diameter_errors)
+                avg_pitch_error = np.mean(pitch_errors)
+                
+                # Display error metrics
+                st.subheader("Error Metrics")
+                st.metric("Average Diameter Prediction Error (%)", f"{avg_diameter_error:.2f}%")
+                st.metric("Average Pitch Prediction Error (%)", f"{avg_pitch_error:.2f}%")
+                
+                # Optionally, display a plot of errors
+                st.subheader("Error Distribution")
+                fig = go.Figure()
+                fig.add_trace(go.Histogram(x=diameter_errors, name='Diameter Errors', opacity=0.75))
+                fig.add_trace(go.Histogram(x=pitch_errors, name='Pitch Errors', opacity=0.75))
+                fig.update_layout(barmode='overlay', title='Error Distribution', xaxis_title='Error (%)', yaxis_title='Count')
+                st.plotly_chart(fig)
+                
+            except Exception as e:
+                st.error(f"Error calculating error metrics: {str(e)}")
 
 if __name__ == "__main__":
     main() 
