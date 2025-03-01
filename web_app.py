@@ -779,8 +779,8 @@ def main():
                 pitch_errors = np.abs((predictions_pitch - actual_pitch) / actual_pitch) * 100
                 
                 # Calculate average error percentage
-                avg_diameter_error = np.mean(diameter_errors)
-                avg_pitch_error = np.mean(pitch_errors)
+                avg_diameter_error = np.mean(diameter_errors) / 100
+                avg_pitch_error = np.mean(pitch_errors) / 100
                 
                 # Display error metrics
                 st.subheader("Error Metrics")
