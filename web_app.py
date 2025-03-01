@@ -757,10 +757,18 @@ def main():
             st.warning("Please train or load models first!")
         else:
             try:
+                # Collect user input for speed, frequency, and power
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    speed = st.number_input("Enter Speed", min_value=0.0)
+                with col2:
+                    frequency = st.number_input("Enter Frequency", min_value=0.0)
+                with col3:
+                    power = st.number_input("Enter Power", min_value=0.0)
+
                 # Use the correct method for predictions
-                # Assuming you have a method to get predictions
-                predictions_diameter = st.session_state.model.predict(speed, frequency, power, 'rf')  # Adjust as necessary
-                predictions_pitch = st.session_state.model.predict(speed, frequency, power, 'nn')  # Adjust as necessary
+                predictions_diameter = st.session_state.model.predict(speed, frequency, power, 'rf')
+                predictions_pitch = st.session_state.model.predict(speed, frequency, power, 'nn')
                 
                 # Assuming you have actual values stored in the model
                 actual_diameter = st.session_state.model.y_test_diameter
